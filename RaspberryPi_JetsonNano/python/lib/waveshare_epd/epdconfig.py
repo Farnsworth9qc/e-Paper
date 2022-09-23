@@ -26,6 +26,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 #
+# EDIT by arnsworth9qc:
+# added compatibility with orangepi i96
 
 import os
 import logging
@@ -88,6 +90,78 @@ class RaspberryPi:
         self.GPIO.output(self.DC_PIN, 0)
 
         self.GPIO.cleanup([self.RST_PIN, self.DC_PIN, self.CS_PIN, self.BUSY_PIN])
+        
+class OrangePi:
+    # Pin definition
+    RST_PIN         = 29
+    DC_PIN          = 24
+    CS_PIN          = 23
+    BUSY_PIN        = 30
+    #LED_PIN         = 126
+
+    def __init__(self):
+        import spidev
+        import OPi.GPIO
+        import orangepi.i96
+
+        self.GPIO = OPi.GPIO
+        self.SPI = spidev.SpiDev()
+        self.i96 = orangepi.i96
+
+    def digital_write(self, pin, value):
+        self.GPIO.output(pin, value)
+
+    def digital_read(self, pin):
+        return self.GPIO.input(pin)
+
+    def delay_ms(self, delaytime):
+        time.sleep(delaytime / 1000.0)
+
+    def spi_writebyte(self, data):
+        self.SPI.writebytes(data)
+
+    def spi_writebyte2(self, data):
+        self.SPI.writebytes2(data)
+
+    def module_init(self):
+        #logger.debug("Module INIT")
+
+        self.GPIO.cleanup()#[self.RST_PIN, self.DC_PIN, self.CS_PIN, self.BUSY_PIN])
+        self.GPIO.setmode(self.i96.BOARD) #self.GPIO.setmode(self.GPIO.BCM) same for OrangePi
+        #logger.debug("1")
+        self.GPIO.setwarnings(False) #self.GPIO.setwarnings(True)
+        #logger.debug("2")
+        self.GPIO.setup(self.RST_PIN, self.GPIO.OUT)
+        #logger.debug("3")
+        self.GPIO.setup(self.DC_PIN, self.GPIO.OUT)
+        #logger.debug("4")
+        self.GPIO.setup(self.CS_PIN, self.GPIO.OUT)
+        #logger.debug("5")
+        self.GPIO.setup(self.BUSY_PIN, self.GPIO.IN)
+        #logger.debug("6")
+
+        #self.GPIO.setup(self.LED_PIN, self.GPIO.OUT)
+        #self.digital_write(self.LED_PIN, 1)
+
+        # SPI device, bus = 2, device = 1
+        self.SPI.open(2, 1)
+        self.SPI.max_speed_hz = 4000000
+        self.SPI.mode = 0b00
+        return 0
+
+    def module_exit(self):
+        logger.debug("spi end")
+
+        #self.digital_write(self.LED_PIN, 0)
+
+        self.SPI.close()
+
+        logger.debug("close 5V, Module enters 0 power consumption ...")
+        self.GPIO.output(self.RST_PIN, 0)
+        self.GPIO.output(self.DC_PIN, 0)
+
+        self.GPIO.cleanup([self.RST_PIN, self.DC_PIN, self.CS_PIN, self.BUSY_PIN])
+        #self.GPIO.cleanup([self.LED_PIN])
 
 
 class JetsonNano:
@@ -218,7 +292,8 @@ if os.path.exists('/sys/bus/platform/drivers/gpiomem-bcm2835'):
 elif os.path.exists('/sys/bus/platform/drivers/gpio-x3'):
     implementation = SunriseX3()
 else:
-    implementation = JetsonNano()
+    implementation = OrangePi()
+    #implementation = JetsonNano()
 
 for func in [x for x in dir(implementation) if not x.startswith('_')]:
     setattr(sys.modules[__name__], func, getattr(implementation, func))
