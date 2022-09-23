@@ -31,7 +31,7 @@ https://www.waveshare.com
 
 ## Modifications for OrangePi i96
 updated e-Paper/RaspberryPi_JetsonNano/python/lib/waveshare_epd/epdconfig.py to work with OrangePi i96
-Connections for my 1.54 inch e-paper display:
+* Connections for my 1.54 inch e-paper display:
 | E-Paper | i96 | Pin Number |
 |--- |--- |--- |
 | VCC  | V_PAD    | 35 |
